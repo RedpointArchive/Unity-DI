@@ -11,4 +11,9 @@ public class UnityInputController : IInputController
     {
         return Input.mousePosition;
     }
+
+    public bool KeyPressed(KeyCode key)
+    {
+        return Input.GetKey(key);
+    }
 }
