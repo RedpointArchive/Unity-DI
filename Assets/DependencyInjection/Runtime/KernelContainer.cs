@@ -34,7 +34,7 @@ namespace Code
         /// <summary>
         /// Initializes members of the <see cref="KernelContainer"/> class.
         /// </summary>
-        public KernelContainer()
+        public KernelContainer(bool isVerifier = false)
         {
             // Initialize a new dependency injection kernel.
             Kernel = new StandardKernel(new NinjectSettings { LoadExtensions = false, UseReflectionBasedInjection = true });
@@ -70,7 +70,10 @@ namespace Code
                     continue;
                 }
 
-                Debug.LogFormat("[dependency injection] Loading configuration '" + settingsStorePrefab.name + "'");
+                if (!isVerifier)
+                {
+                    Debug.LogFormat("[dependency injection] Loading configuration '" + settingsStorePrefab.name + "'");
+                }
 
                 // Validate that the settings store profile name is unique.
                 var settingsStoreInstanceName =
@@ -120,7 +123,11 @@ namespace Code
                     continue;
                 }
 
-                Debug.LogFormat("[dependency injection] Loading per-scene configuration '" + settingsStorePrefab.name + "'");
+                if (!isVerifier)
+                {
+                    Debug.LogFormat("[dependency injection] Loading per-scene configuration '" +
+                                    settingsStorePrefab.name + "'");
+                }
 
                 // Validate that the settings store profile name is unique.
                 var settingsStoreInstanceName =

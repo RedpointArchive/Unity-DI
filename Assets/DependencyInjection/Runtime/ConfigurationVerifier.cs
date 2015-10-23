@@ -70,7 +70,7 @@ public class ConfigurationVerifier : MonoBehaviour
 
                 try
                 {
-                    var kernel = new KernelContainer();
+                    var kernel = new KernelContainer(true);
                     foreach (var combo in combination)
                     {
                         combo.Key.SetValue(instance, combo.Value);
