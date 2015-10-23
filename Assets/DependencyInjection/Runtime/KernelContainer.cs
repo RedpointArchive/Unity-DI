@@ -9,15 +9,32 @@ namespace Code
     using UnityEngine;
 
     /// <summary>
-    /// Defines the static entry point for accessing the dependency injection kernel, and configures
+    /// Defines the entry point for accessing the dependency injection kernel, and configures
     /// all of the service bindings within the kernel at game startup.
     /// </summary>
-    public static class KernelContainer
+    public class KernelContainer
     {
+        private static KernelContainer _gameKernelContainer;
+
         /// <summary>
-        /// Initializes static members of the <see cref="KernelContainer"/> class.
+        /// The static kernel container for the game at runtime. DO NOT ACCESS THIS PROPERTY!
         /// </summary>
-        static KernelContainer()
+        public static KernelContainer GameKernelContainer
+        {
+            get
+            {
+                if (_gameKernelContainer == null)
+                {
+                    _gameKernelContainer = new KernelContainer();
+                }
+                return _gameKernelContainer;
+            }
+        }
+
+        /// <summary>
+        /// Initializes members of the <see cref="KernelContainer"/> class.
+        /// </summary>
+        public KernelContainer()
         {
             // Initialize a new dependency injection kernel.
             Kernel = new StandardKernel(new NinjectSettings { LoadExtensions = false, UseReflectionBasedInjection = true });
@@ -43,7 +60,7 @@ namespace Code
 
                 if (settingsStore == null)
                 {
-                    Debug.LogWarning("The prefab '" + settingsStorePrefab.name + "' does not have a valid configuration component attached");
+                    Debug.LogWarning("[dependency injection] The prefab '" + settingsStorePrefab.name + "' does not have a valid configuration component attached");
                     continue;
                 }
 
@@ -53,7 +70,7 @@ namespace Code
                     continue;
                 }
 
-                Debug.LogFormat("Loading configuration '" + settingsStorePrefab.name + "'");
+                Debug.LogFormat("[dependency injection] Loading configuration '" + settingsStorePrefab.name + "'");
 
                 // Validate that the settings store profile name is unique.
                 var settingsStoreInstanceName =
@@ -103,7 +120,7 @@ namespace Code
                     continue;
                 }
 
-                Debug.LogFormat("Loading per-scene configuration '" + settingsStorePrefab.name + "'");
+                Debug.LogFormat("[dependency injection] Loading per-scene configuration '" + settingsStorePrefab.name + "'");
 
                 // Validate that the settings store profile name is unique.
                 var settingsStoreInstanceName =
@@ -156,7 +173,7 @@ namespace Code
         /// Gets the dependency injection kernel.
         /// </summary>
         /// <value>The dependency injection kernel.</value>
-        public static StandardKernel Kernel { get; private set; }
+        public StandardKernel Kernel { get; private set; }
 
         /// <summary>
         /// Gets or sets an object which represents the current game.
@@ -166,14 +183,14 @@ namespace Code
         /// </para>
         /// </summary>
         /// <value>An object which represents the current game.</value>
-        public static object CurrentGame { get; set; }
+        public object CurrentGame { get; set; }
 
         /// <summary>
         /// Looks up a type based on the full type name.
         /// </summary>
         /// <returns>The type.</returns>
         /// <param name="typeName">The full type name.</param>
-        private static Type LookupType(string typeName)
+        private Type LookupType(string typeName)
         {
             if (string.IsNullOrEmpty(typeName))
             {

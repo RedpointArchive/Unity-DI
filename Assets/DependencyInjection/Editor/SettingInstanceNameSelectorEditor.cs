@@ -15,7 +15,7 @@ public class SettingInstanceNameSelectorEditor : PropertyDrawer
         var fieldOptions = new List<string>();
         var range = attribute as SettingInstanceNameSelectorAttribute;
 
-        foreach (var res in Resources.LoadAll("SettingsStores").OfType<GameObject>())
+        foreach (var res in Resources.LoadAll("Configuration").OfType<GameObject>())
         {
             var components = res.GetComponents(range.BaseSettingStoreType);
             if (components.Length > 0)
@@ -33,8 +33,24 @@ public class SettingInstanceNameSelectorEditor : PropertyDrawer
             }
         }
 
-        property.stringValue = fieldOptions[EditorGUI.Popup(position, label,
+        if (fieldOptions.Count > 0)
+        {
+            if (fieldOptions.IndexOf(property.stringValue) != -1)
+            {
+                property.stringValue = fieldOptions[EditorGUI.Popup(position, label,
                     fieldOptions.IndexOf(property.stringValue),
                     fieldOptions.Select(x => new GUIContent(x)).ToArray())];
+            }
+            else
+            {
+                property.stringValue = fieldOptions[EditorGUI.Popup(position, label,
+                    0,
+                    fieldOptions.Select(x => new GUIContent(x)).ToArray())];
+            }
+        }
+        else
+        {
+            property.stringValue = null;
+        }
     }
 }

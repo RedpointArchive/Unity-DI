@@ -4,13 +4,18 @@ using UnityEngine;
 
 public abstract class BaseBehaviour : MonoBehaviour
 {
-    public void Start()
+    public void Awake()
     {
-        Inject(KernelContainer.Kernel);
-        StartAfterInjection();
+        if (!IsForDependencyInjectionVerification)
+        {
+            Inject(KernelContainer.GameKernelContainer.Kernel);
+            AwakeAfterInjection();
+        }
     }
+    
+    public static bool IsForDependencyInjectionVerification { get; set; }
 
     protected abstract void Inject(IKernel kernel);
 
-    protected abstract void StartAfterInjection();
+    protected abstract void AwakeAfterInjection();
 }

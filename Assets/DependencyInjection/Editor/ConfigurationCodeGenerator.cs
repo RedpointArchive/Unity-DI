@@ -23,7 +23,7 @@ public class ConfigurationCodeGenerator
             "GameObject",
         };
 
-    [MenuItem("Code Generation/Update Types supported by Settings Store")]
+    [MenuItem("Dependency Injection/Code Generation/Update Types supported by Settings Store")]
     public static void UpdateTypesSupportedBySettingsStore()
     {
         var classDefinition = GenerateSettingsStoreRuntimeCode();

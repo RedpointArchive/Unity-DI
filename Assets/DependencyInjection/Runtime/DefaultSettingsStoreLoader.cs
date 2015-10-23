@@ -81,7 +81,11 @@ namespace Code
 
         public IEnumerable<string> InstanceNames
         {
-            get { return this.loadedInstanceSettings.Keys; }
+            get
+            {
+                LoadSettingsIfNeeded();
+                return this.loadedInstanceSettings.Keys;
+            }
         }
 
         /// <summary>
@@ -89,7 +93,7 @@ namespace Code
         /// </summary>
         private void LoadSettingsIfNeeded()
         {
-            if (this.loadedSettings != null)
+            if (this.loadedSettings != null && this.loadedInstanceSettings != null)
             {
                 return;
             }
