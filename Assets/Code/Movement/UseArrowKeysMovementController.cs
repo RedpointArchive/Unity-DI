@@ -44,4 +44,9 @@ public class UseArrowKeysMovementController : IMovementController
                 player.transform.position.z);
         }
     }
+
+    public bool ShouldSpawnPrefab()
+    {
+        return _inputController.KeyPressed(KeyCode.Space);
+    }
 }

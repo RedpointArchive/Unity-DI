@@ -40,4 +40,9 @@ public class ClickToMoveMovementController : IMovementController
                 0.1f);
         }
     }
+
+    public bool ShouldSpawnPrefab()
+    {
+        return _inputController.Clicked();
+    }
 }

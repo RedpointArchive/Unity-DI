@@ -9,25 +9,36 @@ public class PlayerBehaviour : BaseBehaviour
 
     private IPlayerStyle _playerStyle;
 
+    private MeshRenderer _meshRenderer;
+
+    private IPrefabFactory _blobFactory;
+
     [SettingInstanceNameSelector(typeof(PlayerConfiguration))]
     public string PlayerStyle;
+
+    public Transform BlobPrefab;
 
     protected override void Inject(IKernel kernel)
     {
         _movementController = kernel.Get<IMovementController>();
         _playerStyle = kernel.Get<IPlayerStyle>(PlayerStyle);
+        _meshRenderer = kernel.Get<IHasComponentOnSameGameObject<MeshRenderer>>().Component;
+        _blobFactory = kernel.Get<IPrefabFactory>(new PrefabFactoryFromValue(BlobPrefab));
     }
 
     protected override void AwakeAfterInjection()
     {
-        // NOTE: It'd be great if we could dependency inject
-        // the MeshRenderer, but we need support from
-        // Unity Tech to do this.
-        GetComponent<MeshRenderer>().material = _playerStyle.PlayerMaterial;
+        _meshRenderer.material = _playerStyle.PlayerMaterial;
     }
 
     public void Update()
     {
         _movementController.Update(gameObject);
+
+        if (_movementController.ShouldSpawnPrefab())
+        {
+            var blob = _blobFactory.Instantiate();
+            blob.transform.position = gameObject.transform.position;
+        }
     }
 }

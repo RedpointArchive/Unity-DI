@@ -20,84 +20,160 @@ public class ConfigurationVerifier : MonoBehaviour
     {
         _configurationGameObjects = null;
 
-        Debug.Log("[dependency injection] Beginning dependency injection verification...");
-
-        var types =
-            from assembly in AppDomain.CurrentDomain.GetAssemblies()
-            from type in assembly.GetTypes()
-            where !type.IsAbstract && !type.IsInterface && typeof (BaseBehaviour).IsAssignableFrom(type)
-            select type;
-
-        var instances = new List<BaseBehaviour>();
-        foreach (var type in types)
+        KernelContainer.IsForDependencyInjectionVerification = true;
+        try
         {
-            Debug.Log("[dependency injection] Calling default constructor of " + type.FullName + "...");
-            var gameObject = new GameObject();
-            BaseBehaviour.IsForDependencyInjectionVerification = true;
-            instances.Add((BaseBehaviour)gameObject.AddComponent(type));
-            BaseBehaviour.IsForDependencyInjectionVerification = false;
-            Object.DestroyImmediate(gameObject);
-        }
+            Debug.Log("[dependency injection] Beginning dependency injection verification...");
 
-        Debug.Log("[dependency injection] All instances constructed successfully.");
+            var types =
+                from assembly in AppDomain.CurrentDomain.GetAssemblies()
+                from type in assembly.GetTypes()
+                where !type.IsAbstract && !type.IsInterface && typeof (BaseBehaviour).IsAssignableFrom(type)
+                select type;
 
-        Debug.Log("[dependency injection] Testing dependencies can be satisifed...");
-
-        var errors = 0;
-        foreach (var instance in instances)
-        {
-            var combinations = GetAllProfileCombinationsForInstance(instance).ToArray();
-
-            var wasNone = false;
-            if (combinations.Length == 0)
+            var instances = new List<BaseBehaviour>();
+            foreach (var type in types)
             {
-                combinations = new[] {new Dictionary<FieldInfo, string>()};
-                wasNone = true;
+                Debug.Log("[dependency injection] Calling default constructor of " + type.FullName + "...");
+                var gameObject = new GameObject();
+                instances.Add((BaseBehaviour) gameObject.AddComponent(type));
+                Object.DestroyImmediate(gameObject);
             }
 
-            foreach (var combination in combinations)
+            Debug.Log("[dependency injection] All instances constructed successfully.");
+
+            Debug.Log("[dependency injection] Testing dependencies can be non-contextually satisifed...");
+
+            var errors = 0;
+            foreach (var instance in instances)
             {
-                if (wasNone)
+                var combinations = GetAllProfileCombinationsForInstance(instance).ToArray();
+
+                var wasNone = false;
+                if (combinations.Length == 0)
                 {
-                    Debug.Log("[dependency injection] Testing dependencies of " + instance.GetType().FullName + "...");
-                }
-                else
-                {
-                    var withProfiles =
-                        combination.Select(x => x.Key.Name + "='" + x.Value + "'").Aggregate((a, b) => a + ", " + b);
-                    Debug.Log("[dependency injection] Testing dependencies of " + instance.GetType().FullName + " with profiles " + withProfiles + "...");
+                    combinations = new[] {new Dictionary<FieldInfo, string>()};
+                    wasNone = true;
                 }
 
-                try
+                foreach (var combination in combinations)
                 {
-                    var kernel = new KernelContainer(true);
-                    foreach (var combo in combination)
+                    if (wasNone)
                     {
-                        combo.Key.SetValue(instance, combo.Value);
+                        Debug.Log("[dependency injection] Testing dependencies of " + instance.GetType().FullName +
+                                  "...");
                     }
-                    var method = instance.GetType().GetMethod("Inject", BindingFlags.NonPublic | BindingFlags.Instance);
-                    method.Invoke(instance, new object[] {kernel.Kernel});
-                }
-                catch (TargetInvocationException ex)
-                {
-                    Debug.LogException(ex.InnerException);
-                    errors++;
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogException(ex);
-                    errors++;
+                    else
+                    {
+                        var withProfiles =
+                            combination.Select(x => x.Key.Name + "='" + x.Value + "'").Aggregate((a, b) => a + ", " + b);
+                        Debug.Log("[dependency injection] Testing dependencies of " + instance.GetType().FullName +
+                                  " with profiles " + withProfiles + "...");
+                    }
+
+                    try
+                    {
+                        var kernel = new KernelContainer(true);
+                        kernel.Kernel.Settings.Set("IsContextFreeVerification", true);
+                        foreach (var combo in combination)
+                        {
+                            combo.Key.SetValue(instance, combo.Value);
+                        }
+                        var method = instance.GetType()
+                            .GetMethod("Inject", BindingFlags.NonPublic | BindingFlags.Instance);
+                        method.Invoke(instance, new object[] {kernel.Kernel});
+                    }
+                    catch (TargetInvocationException ex)
+                    {
+                        Debug.LogException(ex.InnerException);
+                        errors++;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogException(ex);
+                        errors++;
+                    }
                 }
             }
-        }
 
-        if (errors == 0)
-        {
-            Debug.Log("OKAY - All dependencies can be satisifed!");
+            Debug.Log("[dependency injection] Testing dependencies can be contextually satisifed in scene hierarchy...");
+            var gameObjectsInHierarchy = Object.FindObjectsOfType<GameObject>().ToList();
+            var transformsToTest = new List<Transform>();
+            var transformsTested = new List<Transform>();
+            var gameObjectsToDelete = new List<GameObject>();
+            while (gameObjectsInHierarchy.Count > 0)
+            {
+                foreach (var gameObject in gameObjectsInHierarchy)
+                {
+                    foreach (var behaviour in gameObject.GetComponents<BaseBehaviour>())
+                    {
+                        Debug.Log("[dependency injection] Testing dependencies of " + behaviour.GetType().Name + " on '" +
+                                  gameObject.name + "' in scene...");
+
+                        try
+                        {
+                            var kernel = new KernelContainer(true);
+                            kernel.Kernel.Rebind(typeof (IPrefabFactory))
+                                .ToMethod(
+                                    context =>
+                                        LookupModule.ResolvePrefabFactory(context, val =>
+                                        {
+                                            if (!transformsTested.Contains(val) && !transformsToTest.Contains(val))
+                                            {
+                                                transformsToTest.Add(val);
+                                            }
+                                        }));
+                            kernel.Kernel.Settings.Set("CurrentGameObject", gameObject);
+                            var method = behaviour.GetType()
+                                .GetMethod("Inject", BindingFlags.NonPublic | BindingFlags.Instance);
+                            method.Invoke(behaviour, new object[] {kernel.Kernel});
+                        }
+                        catch (TargetInvocationException ex)
+                        {
+                            Debug.LogException(ex.InnerException);
+                            errors++;
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.LogException(ex);
+                            errors++;
+                        }
+                    }
+                }
+
+                gameObjectsInHierarchy.Clear();
+
+                foreach (var transform in transformsToTest)
+                {
+                    Debug.Log("[dependency injection] Instantiating '" + transform.name + "' in scene...");
+                    var newGo = Object.Instantiate(transform).gameObject;
+                    newGo.name = transform.name + " (Instance for Dependency Verification)";
+                    gameObjectsInHierarchy.Add(newGo);
+                    gameObjectsToDelete.Add(newGo);
+                    transformsTested.Add(transform);
+                }
+
+                transformsToTest.Clear();
+            }
+
+            foreach (var go in gameObjectsToDelete)
+            {
+                Object.DestroyImmediate(go);
+            }
+
+            if (errors == 0)
+            {
+                Debug.Log("OKAY - All dependencies can be satisifed!");
+            }
+            else
+            {
+                Debug.LogError("FAIL - There were " + errors + " when testing dependencies of behaviours.");
+            }
+
         }
-        else
+        finally
         {
-            Debug.LogError("FAIL - There were " + errors + " when testing dependencies of behaviours.");
+            KernelContainer.IsForDependencyInjectionVerification = false;
         }
     }
 
@@ -146,7 +222,7 @@ public class ConfigurationVerifier : MonoBehaviour
         var fields = dict.Keys.ToList();
         var stack = new Stack<int>();
 
-        while (true)
+        while (fields.Count != 0)
         {
             if (stack.Count < fields.Count)
             {

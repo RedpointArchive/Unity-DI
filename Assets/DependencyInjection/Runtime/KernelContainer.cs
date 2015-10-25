@@ -51,6 +51,9 @@ namespace Code
                 .InScope(x => x.Request);
             Kernel.Bind<ISettingsStoreLoader>().To<DefaultSettingsStoreLoader>().InSingletonScope();
 
+            // Bind the lookup utilities module.
+            Kernel.Load<LookupModule>();
+
             // Find all of the setting store prefabs in the Resources folder and instantiate all global settings stores.
             var globalSettingsStores = new List<Configuration>();
             var globalSettingsStoreNames = new Dictionary<string, string>();
@@ -191,7 +194,7 @@ namespace Code
         /// </summary>
         /// <value>An object which represents the current game.</value>
         public object CurrentGame { get; set; }
-
+        
         /// <summary>
         /// Looks up a type based on the full type name.
         /// </summary>
@@ -233,5 +236,7 @@ namespace Code
 
             return type;
         }
+
+        public static bool IsForDependencyInjectionVerification { get; set; }
     }
 }

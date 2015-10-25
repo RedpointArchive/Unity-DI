@@ -6,14 +6,14 @@ public abstract class BaseBehaviour : MonoBehaviour
 {
     public void Awake()
     {
-        if (!IsForDependencyInjectionVerification)
+        if (!KernelContainer.IsForDependencyInjectionVerification)
         {
+            KernelContainer.GameKernelContainer.Kernel.Settings.Set("CurrentGameObject", gameObject);
             Inject(KernelContainer.GameKernelContainer.Kernel);
+            KernelContainer.GameKernelContainer.Kernel.Settings.Set("CurrentGameObject", null);
             AwakeAfterInjection();
         }
     }
-    
-    public static bool IsForDependencyInjectionVerification { get; set; }
 
     protected abstract void Inject(IKernel kernel);
 
