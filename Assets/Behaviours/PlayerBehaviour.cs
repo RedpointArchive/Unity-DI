@@ -1,44 +1,18 @@
-﻿using Code;
-using Ninject;
-using UnityEngine;
+﻿using UnityEngine;
 
-[RequireComponent(typeof(MeshRenderer))]
-public class PlayerBehaviour : BaseBehaviour
+public class PlayerBehaviour : InjectedBehaviour
 {
-    private IMovementController _movementController;
+    private readonly IMovementBehaviour _movementBehaviour;
 
-    private IPlayerStyle _playerStyle;
-
-    private MeshRenderer _meshRenderer;
-
-    private IPrefabFactory _blobFactory;
-
-    [SettingInstanceNameSelector(typeof(PlayerConfiguration))]
-    public string PlayerStyle;
-
-    public Transform BlobPrefab;
-
-    protected override void Inject(IKernel kernel)
+    public PlayerBehaviour(
+        [FromParent] IMovementBehaviour movementBehaviour,
+        [FromParent] MeshRenderer meshRenderer)
     {
-        _movementController = kernel.Get<IMovementController>();
-        _playerStyle = kernel.Get<IPlayerStyle>(PlayerStyle);
-        _meshRenderer = kernel.Get<IHasComponentOnSameGameObject<MeshRenderer>>().Component;
-        _blobFactory = kernel.Get<IPrefabFactory>(new PrefabFactoryFromValue(BlobPrefab));
-    }
-
-    protected override void AwakeAfterInjection()
-    {
-        _meshRenderer.material = _playerStyle.PlayerMaterial;
+        _movementBehaviour = movementBehaviour;
     }
 
     public void Update()
     {
-        _movementController.Update(gameObject);
-
-        if (_movementController.ShouldSpawnPrefab())
-        {
-            var blob = _blobFactory.Instantiate();
-            blob.transform.position = gameObject.transform.position;
-        }
+        //_movementBehaviour.Update(gameObject);
     }
 }
